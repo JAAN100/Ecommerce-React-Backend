@@ -25,7 +25,9 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
  
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: 'https://ecommerce-react-frontend-one.vercel.app/'
+}));
 app.use(express.json());
  
 // Serve images from the images folder
