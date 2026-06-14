@@ -18,19 +18,19 @@ import { defaultDeliveryOptions } from './defaultData/defaultDeliveryOptions.js'
 import { defaultCart } from './defaultData/defaultCart.js';
 import { defaultOrders } from './defaultData/defaultOrders.js';
 import fs from 'fs';
-
+ 
 const app = express();
 const PORT = process.env.PORT || 3000;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
+ 
 // Middleware
 app.use(cors());
 app.use(express.json());
-
+ 
 // Serve images from the images folder
 app.use('/images', express.static(path.join(__dirname, 'images')));
-
+ 
 // Use routes
 app.use('/api/products', productRoutes);
 app.use('/api/delivery-options', deliveryOptionRoutes);
@@ -38,10 +38,10 @@ app.use('/api/cart-items', cartItemRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/reset', resetRoutes);
 app.use('/api/payment-summary', paymentSummaryRoutes);
-
+ 
 // Serve static files from the dist folder
 app.use(express.static(path.join(__dirname, 'dist')));
-
+ 
 // Catch-all route to serve index.html for any unmatched routes
 app.get('*', (req, res) => {
   const indexPath = path.join(__dirname, 'dist', 'index.html');
@@ -51,7 +51,7 @@ app.get('*', (req, res) => {
     res.status(404).send('index.html not found');
   }
 });
-
+ 
 // Error handling middleware
 /* eslint-disable no-unused-vars */
 app.use((err, req, res, next) => {
@@ -59,47 +59,69 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Something went wrong!' });
 });
 /* eslint-enable no-unused-vars */
-
-// Sync database and load default data if none exist
-await sequelize.sync();
-
-const productCount = await Product.count();
-if (productCount === 0) {
-  const timestamp = Date.now();
-
-  const productsWithTimestamps = defaultProducts.map((product, index) => ({
-    ...product,
-    createdAt: new Date(timestamp + index),
-    updatedAt: new Date(timestamp + index)
-  }));
-
-  const deliveryOptionsWithTimestamps = defaultDeliveryOptions.map((option, index) => ({
-    ...option,
-    createdAt: new Date(timestamp + index),
-    updatedAt: new Date(timestamp + index)
-  }));
-
-  const cartItemsWithTimestamps = defaultCart.map((item, index) => ({
-    ...item,
-    createdAt: new Date(timestamp + index),
-    updatedAt: new Date(timestamp + index)
-  }));
-
-  const ordersWithTimestamps = defaultOrders.map((order, index) => ({
-    ...order,
-    createdAt: new Date(timestamp + index),
-    updatedAt: new Date(timestamp + index)
-  }));
-
-  await Product.bulkCreate(productsWithTimestamps);
-  await DeliveryOption.bulkCreate(deliveryOptionsWithTimestamps);
-  await CartItem.bulkCreate(cartItemsWithTimestamps);
-  await Order.bulkCreate(ordersWithTimestamps);
-
-  console.log('Default data added to the database.');
+ 
+// Wrap startup in async function for Vercel compatibility
+async function startServer() {
+  try {
+    // Sync database and load default data if none exist
+    await sequelize.sync();
+ 
+    const productCount = await Product.count();
+    if (productCount === 0) {
+      const timestamp = Date.now();
+ 
+      const productsWithTimestamps = defaultProducts.map((product, index) => ({
+        ...product,
+        createdAt: new Date(timestamp + index),
+        updatedAt: new Date(timestamp + index)
+      }));
+ 
+      const deliveryOptionsWithTimestamps = defaultDeliveryOptions.map((option, index) => ({
+        ...option,
+        createdAt: new Date(timestamp + index),
+        updatedAt: new Date(timestamp + index)
+      }));
+ 
+      const cartItemsWithTimestamps = defaultCart.map((item, index) => ({
+        ...item,
+        createdAt: new Date(timestamp + index),
+        updatedAt: new Date(timestamp + index)
+      }));
+ 
+      const ordersWithTimestamps = defaultOrders.map((order, index) => ({
+        ...order,
+        createdAt: new Date(timestamp + index),
+        updatedAt: new Date(timestamp + index)
+      }));
+ 
+      await Product.bulkCreate(productsWithTimestamps);
+      await DeliveryOption.bulkCreate(deliveryOptionsWithTimestamps);
+      await CartItem.bulkCreate(cartItemsWithTimestamps);
+      await Order.bulkCreate(ordersWithTimestamps);
+ 
+      console.log('Default data added to the database.');
+    }
+  } catch (error) {
+    console.error('Database initialization error:', error);
+  }
+ 
+  // Start server (only in non-serverless environment)
+  if (process.env.VERCEL !== '1') {
+    app.listen(PORT, () => {
+      console.log(`Server is running on port ${PORT}`);
+    });
+  }
 }
+ 
+startServer();
+ 
+export default app;
+ 
 
-// Start server
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-});
+
+
+
+
+
+
+
